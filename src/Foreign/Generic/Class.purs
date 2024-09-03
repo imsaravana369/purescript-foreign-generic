@@ -1,5 +1,6 @@
 module Foreign.Generic.Class where
 
+import Data.Array.NonEmpty.Internal
 import Prelude
 
 import Control.Alt ((<|>))
@@ -15,6 +16,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Traversable (sequence)
+import Data.Tuple (Tuple(..))
 import Foreign (F, Foreign, ForeignError(..), fail, readArray, readBoolean, readChar, readInt, readNumber, readString, unsafeToForeign)
 import Foreign.Generic.Internal (readObject)
 import Foreign.Index (index)
@@ -184,6 +186,16 @@ instance Encode a => Encode (Maybe a) where
 
 instance Encode v => Encode (Object v) where
   encode = unsafeToForeign <<< Object.mapWithKey (\_ -> encode)
+
+instance (Encode a) => Encode (NonEmptyArray a) where 
+    encode (NonEmptyArray arr) = encode arr
+
+instance (Encode a, Encode b) => Encode (Tuple a b) where 
+  encode (Tuple a b) = encode { tag : "Tuple", contents : [ encode a, encode b]}
+
+instance (Encode a, Encode b) => Encode (Either a b) where 
+  encode (Right a) = encode { tag : "Right", contents : [ encode a]}
+  encode (Left a) = encode { tag : "Left", contents : [ encode a]}
 
 instance (RowToList r rl, EncodeRecord r rl) => Encode (Record r) where
   encode = encodeWithOptions defaultOptions
